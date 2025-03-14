@@ -9,10 +9,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
     "expo": "~52.0.38",
+    "expo-constants": "^17.0.8",
     "expo-status-bar": "~2.0.1",
+    "firebase": "^11.4.0",
+    "mapmandatory": "file:",
     "react": "18.3.1",
-    "react-native": "0.76.7"
+    "react-firebase-hooks": "^5.1.1",
+    "react-native": "0.76.7",
+    "react-native-maps": "^1.20.1",
+    "expo-updates": "~0.27.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

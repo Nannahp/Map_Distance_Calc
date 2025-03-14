@@ -23,6 +23,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "firebaseApiKey": "AIzaSyCixvOJCYHFm7UcbkRc4bJhoNWE_jHn10I",
+      "eas": {
+        "projectId": "7eb763af-837a-441c-918a-bdd36fb58941"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7eb763af-837a-441c-918a-bdd36fb58941"
     }
   }
 }
