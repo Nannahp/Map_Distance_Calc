@@ -26,6 +26,7 @@
     },
     "extra": {
       "firebaseApiKey": "AIzaSyCixvOJCYHFm7UcbkRc4bJhoNWE_jHn10I",
+      "googleAPI":"AIzaSyA_rd68bgQLP3wsgGRlMHixkTDuSBXedeo",
       "eas": {
         "projectId": "7eb763af-837a-441c-918a-bdd36fb58941"
       }

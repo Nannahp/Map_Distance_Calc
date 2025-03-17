@@ -1,0 +1,173 @@
+import { StatusBar } from 'expo-status-bar';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, {Marker} from 'react-native-maps';
+import { collection, addDoc, GeoPoint } from 'firebase/firestore';
+import db from './firebase'
+import { useCollection} from 'react-firebase-hooks/firestore'
+import * as Location from 'expo-location';
+import axios from 'axios';
+import Constants from "expo-constants";
+
+// Main application 
+export default function App() {
+  //State for managin current location
+  const [currentLocation, setCurrentLocation] = useState(null);
+  // state for manaigin the seleved marker location
+  const [markerLocation, setMarkerLocation] = useState(null)
+  // Fetch marker data from Firestore using Firebase hooks
+  const [values, loading, error] = useCollection(collection(db, 'markers'))
+  const data = values?.docs.map((doc) => ({...doc.data(), id:doc.id}))
+  //Define initial region settings for the map
+  const [region, setRegion] = useState({
+    latitude: 55.7,
+    longitude: 12.6,
+    latitudeDelta: 0.3,
+    longitudeDelta: 0.3,
+  });
+
+  //get distance from google maps
+  const getDistance = async (origin, destination) => {
+    const apiKey = Constants.expoConfig.extra.googleAPI;  // Use your actual API key here
+    const url = `https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix?key=${apiKey}`;
+  
+    const distanceData = {
+      origins: [
+        {
+          latLng: { lat: origin.latitude, lng: origin.longitude } // Correct field names
+        }
+      ],
+      destinations: [
+        {
+          latLng: { lat: destination.latitude, lng: destination.longitude } // Correct field names
+        }
+      ],
+      travelMode: 'WALK', // or 'DRIVE', 'BICYCLE'
+    };
+    
+    console.log("Sending request to Google API with the following data:", distanceData);
+  
+    try {
+      const response = await axios.post(url, distanceData);
+      console.log("Full API response:", response.data);
+  
+      // Check for a valid response structure
+      if (response.data.rows && response.data.rows.length > 0) {
+        const distanceMeters = response.data.rows[0]?.elements[0]?.distance?.meters;
+        if (distanceMeters) {
+          const distanceKm = distanceMeters / 1000; // Convert meters to kilometers
+          return distanceKm;
+        } else {
+          console.error("Distance not found in response.");
+          return null;
+        }
+      } else {
+        console.error("Invalid response structure or no routes found.");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching distance:", error.response?.data || error.message);
+      return null;
+    }
+  };
+  //Fetch user's current location
+  useEffect(() => {
+    //ask for permission
+    let locationSubscription;
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission Denied', 'Allow location access to use this feature');
+        return;
+      }
+      //track location
+      locationSubscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 }, // Update every 5 sec or 10m movement
+        (location) => {
+          setCurrentLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+  
+          // Update map region dynamically
+          setRegion((prev) => ({
+            ...prev,
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          }));
+        }
+      );
+    })();
+  
+    return () => {
+      if (locationSubscription) locationSubscription.remove(); // Clean up when unmounting
+    };
+  }, []);
+  //Handle long press event on themap to add a new marker to Firestore
+  async function handleLongPress(event){
+      console.log("pressed long ")
+      const { coordinate } = event.nativeEvent
+      //setMarkerLocation(coordinate)
+      try {
+        await addDoc(collection(db, 'markers'),{
+          location: new GeoPoint(coordinate.latitude, coordinate.longitude)
+        })
+      } catch (error) {
+        console.log("error uploading marker ", error)
+      }
+  }
+
+//Render application
+  return (
+    <View style={styles.container}>
+      <Text>Open up App.js to start working on your app!</Text>
+      {/* Start map and add markers to map */}
+      <MapView
+      region={region}
+      onLongPress={handleLongPress}
+      style={{flex:1, width:'100%', height:'100%'}}>
+        {/*Display existing markers from Firestore */}
+        { data && data.map((marker)=>    (
+        <Marker 
+          key={marker.id}
+          coordinate={{
+          latitude:marker.location.latitude,
+           longitude:marker.location.longitude
+          }}
+          title="Marked Location"
+          description="Saved marker" 
+          onPress={async () => {
+            if (currentLocation) {
+              const distance = await getDistance(currentLocation, marker.location);
+              if (distance !== null) {
+                alert(`Distance to marker: ${distance.toFixed(2)} km`);
+              }
+              else {
+                alert('unable to calculate distance.');
+              }
+            }
+          }}
+        /> 
+        ))}
+        {/*Display user's current location in blue*/}
+        {currentLocation && (
+          <Marker 
+            coordinate={currentLocation}
+            title="You are here"
+            pinColor="blue"
+            />
+        )}
+      </MapView>
+      <StatusBar style="auto" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
