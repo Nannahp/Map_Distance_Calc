@@ -1,4 +1,4 @@
-{
+{ 
   "expo": {
     "name": "MapMandatory",
     "slug": "MapMandatory",
@@ -38,4 +38,5 @@
       "url": "https://u.expo.dev/7eb763af-837a-441c-918a-bdd36fb58941"
     }
   }
+  
 }
